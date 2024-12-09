@@ -34,7 +34,7 @@ public class Main {
     }
 
     private static void printConsole() {
-        System.out.println("\n Choose: \n");
+        System.out.println("\n Choose:");
         System.out.println(
                         "1  - Show all watched movies \n" +
                         "2  - Show genres watched\n" +
@@ -54,7 +54,7 @@ public class Main {
         int input = 0;
         while (true) {
             try {
-                input = Integer.valueOf(scanner.nextLine());
+                input = Integer.parseInt(scanner.nextLine());
                 break;
             } catch (NumberFormatException e) {
                 System.out.println("Please choose one of the following options:");
@@ -94,7 +94,8 @@ public class Main {
     private static void printMovies(ResultSet resultSet) throws SQLException {
         System.out.println();
         while (resultSet.next()) {
-            System.out.println(resultSet.getString("movieId") + "\t"
+            System.out.println("ID:"
+                    + resultSet.getString("movieId") + "\t"
                     + resultSet.getString("movieTitle") + "\t"
                     + resultSet.getString("movieDirector") + "\t"
                     + resultSet.getString("movieReleaseYear") + "\t"
@@ -121,7 +122,7 @@ public class Main {
     private static void printAllGenres(ResultSet resultSet) throws SQLException {
         System.out.println();
         while (resultSet.next()) {
-            System.out.println(resultSet.getString("genreId") + "\t"
+            System.out.println("ID: " + resultSet.getString("genreId") + "\t"
                     + resultSet.getString("genreName"));
         }
     }
@@ -164,17 +165,18 @@ public class Main {
             String director = scanner.nextLine();
             System.out.println("Enter movie year: ");
             int year = Integer.parseInt(scanner.nextLine());
-            System.out.println("enter movie genre: ");
-            String genre = scanner.nextLine();
+            showAllGenres();
+            System.out.println("Enter movie genre ID: ");
+            int genre = Integer.parseInt(scanner.nextLine());
             addMovie(title, director, year, genre);
         } catch (Exception e) {
             System.out.println("Woops, something went wrong.");
         }
     }
-    private static void addMovie(String title, String director, int year, String genre) {
+    private static void addMovie(String title, String director, int year, int genre) {
 
         String sql = "INSERT INTO movies (movieTitle, movieDirector, movieReleaseYear, movieFavorite, movieGenreId)" +
-                " VALUES (?,?,?,'NO',(SELECT genreId FROM genres WHERE genreName = ?))";
+                " VALUES (?,?,?,'NO',?))";
 
         try{
             Connection connection = connect();
@@ -182,7 +184,7 @@ public class Main {
             preparedStatement.setString(1, title);
             preparedStatement.setString(2, director);
             preparedStatement.setInt(3, year);
-            preparedStatement.setString(4, genre);
+            preparedStatement.setInt(4, genre);
             preparedStatement.executeUpdate();
             System.out.println("The movie was successfully added to the database.");
         } catch (SQLException e) {
@@ -229,40 +231,6 @@ public class Main {
         }
     }
 
-    private static void inputUpdateMovie() {
-        try {
-            int movieId = getMovieId();
-            System.out.println("Enter movie name: ");
-            String title = scanner.nextLine();
-            System.out.println("Enter movie director: ");
-            String director = scanner.nextLine();
-            System.out.println("Enter movie year: ");
-            int year = Integer.parseInt(scanner.nextLine());
-            System.out.println("enter movie genre: ");
-            String genre = scanner.nextLine();
-            updateMovie(movieId, title, director, year, genre);
-        } catch (Exception e) {
-            System.out.println("Woops, something went wrong.");
-        }
-    }
-
-    private static void updateMovie(int movieId, String title, String director, int year, String genre) {
-
-        String sql = "UPDATE movies SET movieTitle = ?, movieDirector = ?, movieReleaseYear = ?, movieGenreId = (SELECT genreId FROM genres WHERE genreName = ?) WHERE movieId = ?";
-        try{
-            Connection connection = connect();
-            PreparedStatement preparedStatement = connection.prepareStatement(sql);
-            preparedStatement.setString(1,title);
-            preparedStatement.setString(2,director);
-            preparedStatement.setInt(3,year);
-            preparedStatement.setString(4,genre);
-            preparedStatement.setInt(5,movieId);
-            preparedStatement.executeUpdate();
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-    }
-
     private static String checkIfFavorite(ResultSet resultSet) throws SQLException {
         String favorite = resultSet.getString("movieFavorite");
         if (favorite.equals("YES")) {
@@ -280,7 +248,44 @@ public class Main {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             preparedStatement.setString(1, favorite);
             preparedStatement.setInt(2, movieId);
-            preparedStatement.executeQuery();
+            preparedStatement.executeUpdate();
+            System.out.println("Toggled favorite to: " + favorite);
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private static void inputUpdateMovie() {
+        try {
+            int movieId = getMovieId();
+            System.out.println("Enter movie name: ");
+            String title = scanner.nextLine();
+            System.out.println("Enter movie director: ");
+            String director = scanner.nextLine();
+            System.out.println("Enter movie year: ");
+            int year = Integer.parseInt(scanner.nextLine());
+            showAllGenres();
+            System.out.println("Enter movie genre ID: ");
+            int genre = Integer.parseInt(scanner.nextLine());
+            updateMovie(movieId, title, director, year, genre);
+        } catch (Exception e) {
+            System.out.println("Woops, something went wrong.");
+        }
+    }
+
+    private static void updateMovie(int movieId, String title, String director, int year, int genre) {
+
+        String sql = "UPDATE movies SET movieTitle = ?, movieDirector = ?, movieReleaseYear = ?, movieGenreId = ? WHERE movieId = ?";
+        try{
+            Connection connection = connect();
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setString(1,title);
+            preparedStatement.setString(2,director);
+            preparedStatement.setInt(3,year);
+            preparedStatement.setInt(4,genre);
+            preparedStatement.setInt(5,movieId);
+            preparedStatement.executeUpdate();
+            System.out.println("The movie was successfully updated.");
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -353,7 +358,7 @@ public class Main {
         System.out.println("Enter movie ID: ");
         int movieId = 0;
         try {
-            int movieID = Integer.parseInt(scanner.nextLine());
+            movieId = Integer.parseInt(scanner.nextLine());
         } catch (Exception e) {
             InvalidMovieIdErrorMessage();
         }
