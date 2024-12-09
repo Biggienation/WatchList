@@ -28,30 +28,48 @@ public class Main {
                 case 7 -> inputUpdateMovie();
                 case 8 -> inputDeleteMovie();
                 case 9 -> inputDeleteGenre();
+                case 10 -> search();
                 case 0 -> on  = false;
             }
         }
     }
 
     private static void printConsole() {
-        System.out.println("\n Choose:");
+        printMoviesWatched();
+        System.out.println(" Choose:");
         System.out.println(
-                        "1  - Show all watched movies \n" +
-                        "2  - Show genres watched\n" +
-                        "3  - Show favorites\n" +
-                        "4  - Add a movie\n" +
-                        "5  - Add genre\n" +
-                        "6  - Toggle favorites\n" +
-                        "7 -  Update a movie\n" +
-                        "8  - Delete a movie\n" +
-                        "9  - Delete genre\n" +
-                        "10 - Search\n" +
-                        "0  - Exit"
+                """
+                        1  - Show all watched movies\s
+                        2  - Show genres watched
+                        3  - Show favorites
+                        4  - Add a movie
+                        5  - Add genre
+                        6  - Toggle favorites
+                        7 -  Update a movie
+                        8  - Delete a movie
+                        9  - Delete genre
+                        10 - Search
+                        0  - Exit"""
         );
+
+    }
+
+    private static void printMoviesWatched() {
+        String sql = "SELECT Count(*) FROM movies";
+        try{
+            Connection connection = connect();
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sql);
+            while (resultSet.next()) {
+                System.out.println("\nWatched movies: " + resultSet.getString(1));
+            }
+        } catch (SQLException e){
+            System.out.println(e.getMessage());
+        }
     }
 
     private static int consoleInput() {
-        int input = 0;
+        int input;
         while (true) {
             try {
                 input = Integer.parseInt(scanner.nextLine());
@@ -68,16 +86,8 @@ public class Main {
 
 
 
-
-    //Show methods
-
     private static void showAllMovies() {
-    String sql = "SELECT movies.movieId, movies.movieTitle," +
-                "movies.movieDirector, movies.movieReleaseYear," +
-                "movies.movieFavorite, genres.genreName\n" +
-                "FROM movies\n" +
-                "LEFT JOIN genres\n" +
-                "ON genreID = movieGenreId";
+    String sql = "SELECT movies.movieId, movies.movieTitle,movies.movieDirector, movies.movieReleaseYear, movies.movieFavorite, genres.genreName FROM movies JOIN genres ON genreID = movieGenreId";
 
     try{
         Connection connection = connect();
@@ -104,28 +114,6 @@ public class Main {
         }
     }
 
-    private static void showAllGenres() {
-        String sql = "SELECT *FROM genres";
-
-        try{
-            Connection connection = connect();
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sql);
-
-            printAllGenres(resultSet);
-
-        } catch (SQLException e){
-            System.out.println(e.getMessage());
-        }
-    }
-
-    private static void printAllGenres(ResultSet resultSet) throws SQLException {
-        System.out.println();
-        while (resultSet.next()) {
-            System.out.println("ID: " + resultSet.getString("genreId") + "\t"
-                    + resultSet.getString("genreName"));
-        }
-    }
 
     private static void showFavorites() {
         String sql = "SELECT movies.movieId, movies.movieTitle," +
@@ -134,14 +122,35 @@ public class Main {
                 "FROM movies\n" +
                 "LEFT JOIN genres\n" +
                 "ON genreID = movieGenreId\n" +
-                "WHERE movies.movieFavorite = YES";
+                "WHERE movies.movieFavorite = 'YES'";
 
         try{
             Connection connection = connect();
             Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery(sql);
 
-            printAllGenres(resultSet);
+            printMovies(resultSet);
+
+        } catch (SQLException e){
+            System.out.println(e.getMessage());
+        }
+    }
+    private static void search() {
+        System.out.println("What movie or director do you want to search?");
+        String searchQuery = scanner.nextLine();
+        String sql = "SELECT movies.movieId, movies.movieTitle," +
+                "movies.movieDirector, movies.movieReleaseYear," +
+                "movies.movieFavorite, genres.genreName\n" +
+                "FROM movies\n" +
+                "LEFT JOIN genres\n" +
+                "ON genreID = movieGenreId\n" +
+                "WHERE movieTitle LIKE '%" + searchQuery + "%' OR movieDirector LIKE '%" + searchQuery + "%'";
+
+        try{
+            Connection connection = connect();
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            printMovies(resultSet);
 
         } catch (SQLException e){
             System.out.println(e.getMessage());
@@ -153,8 +162,6 @@ public class Main {
 
 
 
-
-    //Add methods
 
     private static void inputAddMovie() {
         // Add genre option
@@ -170,13 +177,13 @@ public class Main {
             int genre = Integer.parseInt(scanner.nextLine());
             addMovie(title, director, year, genre);
         } catch (Exception e) {
-            System.out.println("Woops, something went wrong.");
+            WhoopsErrorMessage();
         }
     }
+
     private static void addMovie(String title, String director, int year, int genre) {
 
-        String sql = "INSERT INTO movies (movieTitle, movieDirector, movieReleaseYear, movieFavorite, movieGenreId)" +
-                " VALUES (?,?,?,'NO',?))";
+        String sql = "INSERT INTO movies (movieTitle, movieDirector, movieReleaseYear, movieFavorite, movieGenreId) VALUES (?,?,?,'NO',?)";
 
         try{
             Connection connection = connect();
@@ -224,7 +231,11 @@ public class Main {
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             preparedStatement.setInt(1, movieId);
             ResultSet resultSet = preparedStatement.executeQuery();
-            String favorite = checkIfFavorite(resultSet);
+
+            String favorite = "";
+            while (resultSet.next()) {
+                favorite = checkIfFavorite(resultSet);
+            }
             updateFavorite(favorite, movieId);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
@@ -269,8 +280,12 @@ public class Main {
             int genre = Integer.parseInt(scanner.nextLine());
             updateMovie(movieId, title, director, year, genre);
         } catch (Exception e) {
-            System.out.println("Woops, something went wrong.");
+            WhoopsErrorMessage();
         }
+    }
+
+    private static void WhoopsErrorMessage() {
+        System.out.println("Whoops, something went wrong.");
     }
 
     private static void updateMovie(int movieId, String title, String director, int year, int genre) {
@@ -291,10 +306,6 @@ public class Main {
         }
     }
 
-
-
-    //Delete methods
-
     private static void inputDeleteMovie() {
         showAllMovies();
         System.out.println("Enter movie ID:");
@@ -302,6 +313,7 @@ public class Main {
         scanner.nextLine();
         deleteMovie(movieId);
     }
+
     private static void deleteMovie(int movieId) {
         String sql = "DELETE FROM movies WHERE movieId = ?";
         try{
@@ -314,6 +326,7 @@ public class Main {
             InvalidMovieIdErrorMessage();
         }
     }
+
     private static void inputDeleteGenre() {
         showAllGenres();
         System.out.println("Enter genre ID:");
@@ -335,7 +348,6 @@ public class Main {
         }
     }
 
-
     private static Connection connect() {
         // SQLite connection string
         String url = "jdbc:sqlite:E:\\SQLiteWatchList\\SQLiteWatchList.db";
@@ -347,7 +359,6 @@ public class Main {
         }
         return conn;
     }
-
 
     private static void InvalidMovieIdErrorMessage() {
         System.out.println("Please enter a valid movie ID.");
@@ -363,5 +374,28 @@ public class Main {
             InvalidMovieIdErrorMessage();
         }
         return movieId;
+    }
+
+    private static void showAllGenres() {
+        String sql = "SELECT *FROM genres";
+
+        try{
+            Connection connection = connect();
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sql);
+
+            printAllGenres(resultSet);
+
+        } catch (SQLException e){
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private static void printAllGenres(ResultSet resultSet) throws SQLException {
+        System.out.println();
+        while (resultSet.next()) {
+            System.out.println("ID: " + resultSet.getString("genreId") + "\t"
+                    + resultSet.getString("genreName"));
+        }
     }
 }
