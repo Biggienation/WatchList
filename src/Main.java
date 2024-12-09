@@ -82,10 +82,6 @@ public class Main {
         return input;
     }
 
-
-
-
-
     private static void showAllMovies() {
     String sql = "SELECT movies.movieId, movies.movieTitle,movies.movieDirector, movies.movieReleaseYear, movies.movieFavorite, genres.genreName FROM movies JOIN genres ON genreID = movieGenreId";
 
@@ -156,11 +152,6 @@ public class Main {
             System.out.println(e.getMessage());
         }
     }
-
-
-
-
-
 
 
     private static void inputAddMovie() {
